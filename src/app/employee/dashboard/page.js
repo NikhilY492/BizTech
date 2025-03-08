@@ -1,125 +1,183 @@
-"use client"
+"use client";
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Clock, Calendar, Activity, Monitor, Coffee, Users, BarChart2, AlertCircle, Zap } from 'lucide-react';
 
 // Sample data for demonstration - will be replaced with API data
 const mockProductivityData = [
- { name: 'Mon', deepWork: 4.5, distracted: 2.5, idle: 1 },
- { name: 'Tue', deepWork: 5, distracted: 1.5, idle: 1.5 },
- { name: 'Wed', deepWork: 6, distracted: 1, idle: 1 },
- { name: 'Thu', deepWork: 3.5, distracted: 3.5, idle: 1 },
- { name: 'Fri', deepWork: 4, distracted: 2, idle: 2 },
+  { name: 'Mon', deepWork: 4.5, distracted: 2.5, idle: 1 },
+  { name: 'Tue', deepWork: 5, distracted: 1.5, idle: 1.5 },
+  { name: 'Wed', deepWork: 6, distracted: 1, idle: 1 },
+  { name: 'Thu', deepWork: 3.5, distracted: 3.5, idle: 1 },
+  { name: 'Fri', deepWork: 4, distracted: 2, idle: 2 },
 ];
 
 const appUsageData = [
- { name: 'VS Code', value: 35, color: '#2563eb' },
- { name: 'Browser', value: 25, color: '#7c3aed' },
- { name: 'Slack', value: 15, color: '#8b5cf6' },
- { name: 'Zoom', value: 10, color: '#a855f7' },
- { name: 'Others', value: 15, color: '#d1d5db' },
+  { name: 'VS Code', value: 35, color: '#2563eb' },
+  { name: 'Browser', value: 25, color: '#7c3aed' },
+  { name: 'Slack', value: 15, color: '#8b5cf6' },
+  { name: 'Zoom', value: 10, color: '#a855f7' },
+  { name: 'Others', value: 15, color: '#d1d5db' },
 ];
 
 const breakTimeData = [
- { name: '9 AM', time: 5 },
- { name: '10 AM', time: 0 },
- { name: '11 AM', time: 15 },
- { name: '12 PM', time: 30 },
- { name: '1 PM', time: 5 },
- { name: '2 PM', time: 0 },
- { name: '3 PM', time: 10 },
- { name: '4 PM', time: 5 },
- { name: '5 PM', time: 0 },
+  { name: '9 AM', time: 5 },
+  { name: '10 AM', time: 0 },
+  { name: '11 AM', time: 15 },
+  { name: '12 PM', time: 30 },
+  { name: '1 PM', time: 5 },
+  { name: '2 PM', time: 0 },
+  { name: '3 PM', time: 10 },
+  { name: '4 PM', time: 5 },
+  { name: '5 PM', time: 0 },
 ];
 
 const distractionData = [
- { hour: '9 AM', socialMedia: 5, email: 8, slack: 12 },
- { hour: '10 AM', socialMedia: 0, email: 2, slack: 5 },
- { hour: '11 AM', socialMedia: 3, email: 5, slack: 8 },
- { hour: '12 PM', socialMedia: 15, email: 3, slack: 7 },
- { hour: '1 PM', socialMedia: 12, email: 6, slack: 4 },
- { hour: '2 PM', socialMedia: 2, email: 4, slack: 9 },
- { hour: '3 PM', socialMedia: 4, email: 7, slack: 11 },
- { hour: '4 PM', socialMedia: 8, email: 9, slack: 6 },
+  { hour: '9 AM', socialMedia: 5, email: 8, slack: 12 },
+  { hour: '10 AM', socialMedia: 0, email: 2, slack: 5 },
+  { hour: '11 AM', socialMedia: 3, email: 5, slack: 8 },
+  { hour: '12 PM', socialMedia: 15, email: 3, slack: 7 },
+  { hour: '1 PM', socialMedia: 12, email: 6, slack: 4 },
+  { hour: '2 PM', socialMedia: 2, email: 4, slack: 9 },
+  { hour: '3 PM', socialMedia: 4, email: 7, slack: 11 },
+  { hour: '4 PM', socialMedia: 8, email: 9, slack: 6 },
 ];
 
 const COLORS = ['#2563eb', '#7c3aed', '#8b5cf6', '#a855f7', '#d1d5db'];
 
 const EmployeeDashboard = () => {
- const [activeTab, setActiveTab] = useState('overview');
- const [recentActivity, setRecentActivity] = useState([]);
- const [appSwitches, setAppSwitches] = useState(0);
- const [isLoading, setIsLoading] = useState(false);
- 
- // Calculate productivity score
- const totalHours = mockProductivityData.reduce((acc, day) => acc + day.deepWork + day.distracted + day.idle, 0);
- const deepWorkHours = mockProductivityData.reduce((acc, day) => acc + day.deepWork, 0);
- const productivityScore = Math.round((deepWorkHours / totalHours) * 100);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [appSwitches, setAppSwitches] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
- // Fetch data from Flask backend
- useEffect(() => {
- const fetchData = async () => {
- setIsLoading(true);
- try {
- // Fetch recent activity
- const activityResponse = await fetch('/api/activity');
- if (activityResponse.ok) {
- const activityData = await activityResponse.json();
- setRecentActivity(activityData);
- }
+  // Calculate productivity score
+  const totalHours = mockProductivityData.reduce((acc, day) => acc + day.deepWork + day.distracted + day.idle, 0);
+  const deepWorkHours = mockProductivityData.reduce((acc, day) => acc + day.deepWork, 0);
+  const productivityScore = Math.round((deepWorkHours / totalHours) * 100);
 
- // Fetch app switches
- const switchesResponse = await fetch('/api/switches');
- if (switchesResponse.ok) {
- const switchesData = await switchesResponse.json();
- setAppSwitches(switchesData.count);
- }
- } catch (error) {
- console.error('Error fetching data:', error);
- } finally {
- setIsLoading(false);
- }
- };
+  // Track user activity and send data to backend
+  useEffect(() => {
+    const username = localStorage.getItem("username");
+    if (!username) return; // Ensure user is logged in
 
- // Initial fetch
- fetchData();
+    let keyboardActivity = 0;
+    let mouseClicks = 0;
 
- // Set up a polling interval for real-time updates
- const intervalId = setInterval(fetchData, 60000); // Poll every minute
+    // Track keyboard presses
+    const handleKeyPress = () => {
+      keyboardActivity += 1;
+    };
 
- // Clean up interval on component unmount
- return () => clearInterval(intervalId);
- }, []);
- 
- // Render different content based on active tab
- const renderTabContent = () => {
- switch (activeTab) {
- case 'overview':
- return <OverviewTab 
- productivityScore={productivityScore} 
- deepWorkHours={deepWorkHours} 
- appSwitches={appSwitches}
- mockProductivityData={mockProductivityData}
- appUsageData={appUsageData}
- recentActivity={recentActivity}
- isLoading={isLoading}
- />;
- case 'productivity':
- return <ProductivityTab 
- productivityData={mockProductivityData} 
- distractionData={distractionData}
- />;
- case 'applications':
- return <ApplicationsTab 
- appUsageData={appUsageData} 
- appSwitches={appSwitches}
- />;
- case 'breaks':
- return <BreaksTab breakTimeData={breakTimeData} />;
- default:
- return <OverviewTab />;
- }
- };
+    // Track mouse clicks
+    const handleMouseClick = () => {
+      mouseClicks += 1;
+    };
+
+    // Add event listeners
+    window.addEventListener("keydown", handleKeyPress);
+    window.addEventListener("click", handleMouseClick);
+
+    const sendActivityData = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/update_activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username,
+            keyboard_activity: keyboardActivity,
+            mouse_clicks: mouseClicks,
+            timestamp: Date.now(),
+          }),
+        });
+
+        if (!response.ok) {
+          console.error("Failed to send activity data");
+        }
+      } catch (error) {
+        console.error("Error sending activity data:", error);
+      }
+
+      // Reset counters after sending data
+      keyboardActivity = 0;
+      mouseClicks = 0;
+    };
+
+    // Send data every 1 minute
+    const intervalId = setInterval(sendActivityData, 60000);
+
+    // Cleanup event listeners and interval
+    return () => {
+      window.removeEventListener("keydown", handleKeyPress);
+      window.removeEventListener("click", handleMouseClick);
+      clearInterval(intervalId);
+    };
+  }, []);
+
+  // Fetch data from Flask backend
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch recent activity
+        const activityResponse = await fetch('/api/activity');
+        if (activityResponse.ok) {
+          const activityData = await activityResponse.json();
+          setRecentActivity(activityData);
+        }
+
+        // Fetch app switches
+        const switchesResponse = await fetch('/api/switches');
+        if (switchesResponse.ok) {
+          const switchesData = await switchesResponse.json();
+          setAppSwitches(switchesData.count);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    // Initial fetch
+    fetchData();
+
+    // Set up a polling interval for real-time updates
+    const intervalId = setInterval(fetchData, 60000); // Poll every minute
+
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []);
+
+  // Render different content based on active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <OverviewTab 
+          productivityScore={productivityScore} 
+          deepWorkHours={deepWorkHours} 
+          appSwitches={appSwitches}
+          mockProductivityData={mockProductivityData}
+          appUsageData={appUsageData}
+          recentActivity={recentActivity}
+          isLoading={isLoading}
+        />;
+      case 'productivity':
+        return <ProductivityTab 
+          productivityData={mockProductivityData} 
+          distractionData={distractionData}
+        />;
+      case 'applications':
+        return <ApplicationsTab 
+          appUsageData={appUsageData} 
+          appSwitches={appSwitches}
+        />;
+      case 'breaks':
+        return <BreaksTab breakTimeData={breakTimeData} />;
+      default:
+        return <OverviewTab />;
+    }
+  };
  
  return (
  <div className="flex h-screen bg-gray-50">

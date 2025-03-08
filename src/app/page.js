@@ -26,10 +26,12 @@ export default function Home() {
       setLoading(false);
   
       if (response.ok) {
+        localStorage.setItem("username", username); // ✅ Store username after login
+  
         if (data.jobrole === "admin") {
-          router.push("/admin/overview"); // Redirect admins to overview.js
+          router.push("/admin/overview"); // ✅ Redirect admin
         } else {
-          router.push("/employee/dashboard"); // Redirect employees to dashboard.js
+          router.push("/employee/dashboard"); // ✅ Redirect employee
         }
       } else {
         setError(data.error || "Login failed.");
@@ -39,6 +41,7 @@ export default function Home() {
       setLoading(false);
     }
   };
+  
   
 
   return (
