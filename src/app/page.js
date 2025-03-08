@@ -1,35 +1,45 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-
+    setError("");
+    setLoading(true);
+  
     try {
-      const response = await fetch('http://localhost:5000/login', { // Flask backend endpoint
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:5000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
-
+  
       const data = await response.json();
+      setLoading(false);
+  
       if (response.ok) {
-        router.push('/dashboard');
+        if (data.jobrole === "admin") {
+          router.push("/admin/overview"); // Redirect admins to overview.js
+        } else {
+          router.push("/employee/dashboard"); // Redirect employees to dashboard.js
+        }
       } else {
-        setError(data.message);
+        setError(data.error || "Login failed.");
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      setError("Something went wrong. Please try again.");
+      setLoading(false);
     }
   };
+  
 
   return (
     <div className="flex justify-center items-center h-screen bg-gray-100">
@@ -51,7 +61,7 @@ export default function Home() {
             <label className="block text-black">Password</label>
             <input
               type="password"
-              className="w-full px-4 text-black py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-black"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -60,8 +70,9 @@ export default function Home() {
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
+            disabled={loading}
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>

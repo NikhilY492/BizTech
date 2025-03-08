@@ -1,102 +1,52 @@
 from flask import Flask, request, jsonify
-from flask_pymongo import PyMongo
-from flask_bcrypt import Bcrypt
 from flask_cors import CORS
-from pymongo import MongoClient
-import os
+from flask_pymongo import PyMongo
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # Enable CORS for all domains (restrict in production)
 
-MONGO_URI="mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/?retryWrites=true&w=majority"
-app.config["MONGO_URI"] = MONGO_URI
-
+# MongoDB Config (Make sure to add a database name)
+app.config["MONGO_URI"] = "mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/biztech_db?retryWrites=true&w=majority&appName=Cluster0"
 mongo = PyMongo(app)
-bcrypt = Bcrypt(app)
-users_collection = mongo.db.users  # Define users collection
 
-# Root Endpoint - Health Check
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({"message": "Server is running!"}), 200
+# User Signup
+@app.route('/signup', methods=['POST'])
+def signup():
+    data = request.json
+    required_fields = ["fullname", "username", "jobrole", "password"]
+    
+    if not all(k in data for k in required_fields):
+        return jsonify({"error": "Missing fields"}), 400
+    
+    # Check if username already exists
+    if mongo.db.users.find_one({"username": data["username"]}):
+        return jsonify({"error": "Username already exists"}), 409
 
+    # Hash password before storing
+    hashed_password = generate_password_hash(data["password"])
+    
+    # Insert user
+    mongo.db.users.insert_one({
+        "fullname": data["fullname"],
+        "username": data["username"],
+        "jobrole": data["jobrole"],
+        "password": hashed_password  # Store hashed password
+    })
+    
+    return jsonify({"message": "User registered successfully"}), 201
 
 # User Login
-@app.route("/login", methods=["POST"])
+@app.route('/login', methods=['POST'])
 def login():
-    try:
-        data = request.json
-        username = data.get("username")
-        password = data.get("password")
+    data = request.json
+    user = mongo.db.users.find_one({"username": data["username"]})
 
-        if not username or not password:
-            return jsonify({"message": "Username and password required"}), 400
+    if user and check_password_hash(user["password"], data["password"]):
+        return jsonify({"message": "Login successful", "jobrole": user["jobrole"]}), 200
 
-        user = users_collection.find_one({"username": username})
-
-        if user and bcrypt.check_password_hash(user["password"], password):
-            return jsonify({
-                "message": "Login successful",
-                "username": username,
-                "fullname": user.get("fullname", username)
-            }), 200
-        else:
-            return jsonify({"message": "Invalid username or password"}), 401
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    return jsonify({"error": "Invalid credentials"}), 401
 
 
-# Get User by Username
-@app.route("/user/<username>", methods=["GET"])
-def get_user(username):
-    try:
-        user = users_collection.find_one({"username": username})
-        if not user:
-            return jsonify({"message": "User not found"}), 404
-
-        # Remove sensitive data
-        user.pop("password", None)  # Remove password field
-        user["_id"] = str(user["_id"])  # Convert ObjectId to string
-
-        return jsonify(user), 200
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# Add User (Manually)
-@app.route("/add_user", methods=["POST"])
-def add_user():
-    try:
-        data = request.json
-        username = data.get("username")
-        fullname = data.get("fullname")
-        password = data.get("password")
-        user_type = data.get("user_type", "student")  # Default to student
-
-        if not username or not password or not fullname:
-            return jsonify({"message": "Missing required fields"}), 400
-
-        # Check if user already exists
-        if users_collection.find_one({"username": username}):
-            return jsonify({"message": "Username already exists"}), 409
-
-        hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
-
-        user_data = {
-            "username": username,
-            "fullname": fullname,
-            "password": hashed_password,
-            "user_type": user_type
-        }
-
-        users_collection.insert_one(user_data)
-        return jsonify({"message": "User added successfully!"}), 201
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
