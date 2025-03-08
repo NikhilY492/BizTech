@@ -51,6 +51,29 @@ const EmployeeDashboard = () => {
   const [appSwitches, setAppSwitches] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [activityData, setActivityData] = useState([]);
+  const [username, setUsername] = useState('');
+  const [userInitials, setUserInitials] = useState('');
+  const [jobRole, setJobRole] = useState('Employee');
+
+  // Get username from localStorage on component mount
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("username") || '';
+    setUsername(storedUsername);
+    
+    // Generate initials from username
+    if (storedUsername) {
+      const initials = storedUsername
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .join('')
+        .slice(0, 2);
+      setUserInitials(initials);
+      
+      // You could also fetch the job role from localStorage or an API
+      const storedJobRole = localStorage.getItem("jobRole") || 'Employee';
+      setJobRole(storedJobRole);
+    }
+  }, []);
 
   // Calculate productivity score
   const totalHours = mockProductivityData.reduce((acc, day) => acc + day.deepWork + day.distracted + day.idle, 0);
@@ -59,8 +82,8 @@ const EmployeeDashboard = () => {
 
   // Track user activity and send data to backend
   useEffect(() => {
-    const username = localStorage.getItem("username");
-    if (!username) return; // Ensure user is logged in
+    const storedUsername = localStorage.getItem("username");
+    if (!storedUsername) return; // Ensure user is logged in
 
     let keyboardActivity = 0;
     let mouseClicks = 0;
@@ -85,7 +108,7 @@ const EmployeeDashboard = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            username,
+            username: storedUsername,
             keyboard_activity: keyboardActivity,
             mouse_clicks: mouseClicks,
             timestamp: Date.now(),
@@ -205,11 +228,11 @@ const EmployeeDashboard = () => {
  <div className="p-4">
  <div className="flex items-center space-x-3 mb-6">
  <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">
- JD
+ {userInitials || '--'}
  </div>
  <div>
- <h3 className="font-medium text-black">John Doe</h3>
- <p className="text-sm text-gray-500">Developer</p>
+ <h3 className="font-medium text-black">{username || 'Loading...'}</h3>
+ <p className="text-sm text-gray-500">{jobRole}</p>
  </div>
  </div>
  
