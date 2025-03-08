@@ -325,14 +325,23 @@ const OverviewTab = ({ productivityScore, deepWorkHours, appSwitches, mockProduc
  </div>
  
  <div className="bg-white p-4 rounded-lg shadow">
-    <div className="flex items-center justify-between">
-        <h3 className="text-gray-500 text-sm">App Switches</h3>
-        <span className="text-sm px-2 py-1 rounded bg-purple-100 text-purple-800">Today</span>
-    </div>
-    <div className="mt-2 flex items-end justify-between text-black">
-        <span className="text-3xl font-bold">{activityData.reduce((acc, curr) => acc + curr.app_switches, 0)}</span>
-        <Monitor className="text-purple-500" size={24} />
-    </div>
+
+<div className="flex items-center justify-between">
+
+<h3 className="text-gray-500 text-sm">App Switches</h3>
+
+<span className="text-sm px-2 py-1 rounded bg-purple-100 text-purple-800">Today</span>
+
+</div>
+
+<div className="mt-2 flex items-end justify-between text-black">
+
+<span className="text-3xl font-bold">42</span>
+
+<Monitor className="text-purple-500" size={24} />
+
+</div>
+
 </div>
  
  <div className="bg-white p-4 rounded-lg shadow">

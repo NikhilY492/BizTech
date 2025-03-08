@@ -99,13 +99,6 @@ def classify_window(title):
         return "unproductive"
     return "unknown"
 
-@app.route('/get_activity/<username>', methods=['GET'])
-def get_activity(username):
-    activities = list(mongo.db.activity.find({"username": username}))
-    for activity in activities:
-        activity["_id"] = str(activity["_id"])
-    return jsonify(activities), 200
-
 # Track User Activity
 @app.route('/update_activity', methods=['POST'])
 def update_activity():
@@ -121,10 +114,6 @@ def update_activity():
     active_window = get_active_window()
     productivity_status = classify_window(active_window)
 
-    # Count app switches
-    if previous_window and previous_window != active_window:
-        app_switches += 1
-    previous_window = active_window
     # Fetch app switch count from MongoDB
     tracking_data = mongo.db.activity.find_one({"username": "global_tracking"})
     app_switches = tracking_data.get("app_switches", 0) if tracking_data else 0
@@ -146,7 +135,6 @@ def update_activity():
     # Reset only keyboard and mouse counters
     keyboard_presses = 0
     mouse_clicks = 0
-    app_switches = 0
 
     return jsonify({
         "message": "Activity updated successfully",
