@@ -6,6 +6,7 @@ client = MongoClient("mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/biz
 db = client["biztech_db"]
 activity_collection = db["activity"]
 summary_collection = db["summary"]
+daily_metrics_collection = db["daily_metrics"]  # New collection to store deep work data
 
 # Dictionary to track deep work streaks per user
 user_streaks = {}
@@ -54,8 +55,9 @@ def process_new_log(new_log):
         
         # Only count deep work if at least 4 consecutive logs are productive
         if user_streaks[username]["streak"] >= 4:
-            summary_collection.update_one(
-                {"username": username},
+            # Update deep work time in the daily_metrics_collection
+            daily_metrics_collection.update_one(
+                {"username": username, "date": datetime.today().strftime('%Y-%m-%d')},
                 {"$inc": {"deep_work_time": time_spent}},
                 upsert=True
             )
@@ -64,13 +66,30 @@ def process_new_log(new_log):
         user_streaks[username]["streak"] = 0  # Reset streak on non-productive log
 
 def watch_db():
-    """Monitor the activity collection for new logs."""
+    """Monitor the activity collection for new logs and process them in real-time."""
     print("Listening for new logs...")
+
     pipeline = [{"$match": {"operationType": "insert"}}]
+    log_count = 0  
+
     with activity_collection.watch(pipeline) as stream:
         for change in stream:
             new_log = change["fullDocument"]
-            process_new_log(new_log)
+            process_new_log(new_log)  # Replace with respective function
+
+            log_count += 1
+            if log_count >= 20:
+                print("Processed 20 logs. Stopping watch_db.")
+
+                # Increment shared counter in MongoDB
+                db["processing_status"].update_one(
+                    {"_id": "watch_db_counter"},
+                    {"$inc": {"completed_files": 1}},
+                    upsert=True
+                )
+
+                break  # Stop watching after 20 logs
+
 
 # Start monitoring logs
 watch_db()

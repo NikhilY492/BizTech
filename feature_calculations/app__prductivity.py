@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from pymongo import ASCENDING
 from bson.json_util import loads
 import random
+from datetime import datetime
 
 # Load job profile data
 job_profiles = {
@@ -33,7 +34,8 @@ client = MongoClient("mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/biz
 db = client["biztech_db"]  
 activity_collection = db["activity"]  # Collection with logs (timestamps & active windows)
 users_collection = db["users"]  # Collection with usernames & job roles
-summary_collection = db["summary"]  # New collection to store productivity summaries
+summary_collection = db["summary"]  # Collection to store productivity summaries
+daily_metrics_collection = db["daily_metrics"]  # New collection to store daily metrics
 
 # Initialize tracking variables
 tracked_users = {}  # Stores last logs per user
@@ -55,8 +57,6 @@ def classify_application(active_window, job_role):
                 return "non_productive"
     return "unknown"
 
-from datetime import datetime
-
 def convert_timestamp(timestamp):
     """Convert HH:MM:SS string to seconds since midnight."""
     try:
@@ -64,7 +64,7 @@ def convert_timestamp(timestamp):
         return time_obj.hour * 3600 + time_obj.minute * 60 + time_obj.second
     except ValueError:
         print(f"Invalid timestamp format: {timestamp}")
-        return None  # Return None if parsing fails
+        return None
 
 def process_new_log(new_log):
     """Process a new log entry and update time tracking."""
@@ -72,13 +72,10 @@ def process_new_log(new_log):
 
     username = new_log["username"]
     active_window = new_log["active_window"]
-
-    # Convert timestamp to seconds since midnight
     timestamp = convert_timestamp(new_log["timestamp"])
     if timestamp is None:
-        return  # Skip log if timestamp is invalid
+        return
 
-    # Get job role from users collection
     job_role = get_job_role(username)
 
     if username in tracked_users:
@@ -86,40 +83,40 @@ def process_new_log(new_log):
         last_timestamp = last_log["timestamp"]
         last_window = last_log["active_window"]
 
-        # Calculate time spent on previous application
         time_spent = timestamp - last_timestamp
         classification = classify_application(last_window, job_role)
 
-        # Initialize user's productivity tracking if not already set
         if username not in user_productivity:
             user_productivity[username] = {"productive_time": 0, "non_productive_time": 0}
 
-        # Update total time spent on productive & non-productive apps
         if classification == "productive":
             user_productivity[username]["productive_time"] += time_spent
         elif classification == "non_productive":
             user_productivity[username]["non_productive_time"] += time_spent
 
-        # Calculate percentages
         total_time = user_productivity[username]["productive_time"] + user_productivity[username]["non_productive_time"]
-        if total_time > 0:
-            productive_percentage = (user_productivity[username]["productive_time"] / total_time) * 100
-            non_productive_percentage = (user_productivity[username]["non_productive_time"] / total_time) * 100
-        else:
-            productive_percentage = non_productive_percentage = 0
+        productive_percentage = (user_productivity[username]["productive_time"] / total_time) * 100 if total_time > 0 else 0
+        non_productive_percentage = (user_productivity[username]["non_productive_time"] / total_time) * 100 if total_time > 0 else 0
 
-        # Update the activity log in DB
         activity_collection.update_one(
             {"_id": last_log["_id"]},
-            {"$set": {
-                "time_spent": time_spent,
-                "classification": classification
-            }}
+            {"$set": {"time_spent": time_spent, "classification": classification}}
         )
 
-        # Store user productivity summary in a separate collection
         summary_collection.update_one(
             {"username": username},
+            {"$set": {
+                "productive_time": user_productivity[username]["productive_time"],
+                "non_productive_time": user_productivity[username]["non_productive_time"],
+                "productive_percentage": productive_percentage,
+                "non_productive_percentage": non_productive_percentage
+            }},
+            upsert=True
+        )
+
+        # Store daily metrics in MongoDB
+        daily_metrics_collection.update_one(
+            {"username": username, "date": datetime.today().strftime('%Y-%m-%d')},
             {"$set": {
                 "productive_time": user_productivity[username]["productive_time"],
                 "non_productive_time": user_productivity[username]["non_productive_time"],
@@ -133,41 +130,37 @@ def process_new_log(new_log):
         print(f"Total Productive Time: {user_productivity[username]['productive_time']:.2f}s | Total Non-Productive Time: {user_productivity[username]['non_productive_time']:.2f}s")
         print(f"Productivity %: {productive_percentage:.2f}% | Non-Productivity %: {non_productive_percentage:.2f}%\n")
 
-    # Update last log for the user
     tracked_users[username] = {
         "_id": new_log["_id"],
         "username": username,
         "active_window": active_window,
-        "timestamp": timestamp  # Now stored as seconds since midnight
+        "timestamp": timestamp
     }
-
-#Testing Function
-def process_any_two_logs():
-    """Fetch and process any 2 logs randomly for testing."""
-    print("Processing any 2 logs...")
-    
-    all_logs = list(activity_collection.find({"active_window": {"$exists": True}}))  # Ensure logs have 'active_window'
-    
-    if len(all_logs) < 2:
-        print("Not enough logs available to process.")
-        return
-    
-    random_logs = random.sample(all_logs, 2)  # Pick any two logs randomly
-    
-    for log in random_logs:
-        process_new_log(log)
-
-
-
 def watch_db():
     """Monitor the activity collection for new logs and process them in real-time."""
     print("Listening for new logs...")
+
     pipeline = [{"$match": {"operationType": "insert"}}]
+    log_count = 0  
+
     with activity_collection.watch(pipeline) as stream:
         for change in stream:
             new_log = change["fullDocument"]
-            process_new_log(new_log)
+            process_new_log(new_log)  # Replace with respective function
 
-# Run test processing before starting real-time monitoring
-#process_any_two_logs()
+            log_count += 1
+            if log_count >= 20:
+                print("Processed 20 logs. Stopping watch_db.")
+
+                # Increment shared counter in MongoDB
+                db["processing_status"].update_one(
+                    {"_id": "watch_db_counter"},
+                    {"$inc": {"completed_files": 1}},
+                    upsert=True
+                )
+
+                break  # Stop watching after 20 logs
+
+
+
 watch_db()

@@ -16,10 +16,12 @@ model = joblib.load(MODEL_PATH)
 client = MongoClient("mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/biztech_db?retryWrites=true&w=majority&appName=Cluster0")
 db = client["biztech_db"]
 collection = db["activity"]
+daily_metrics_collection = db["daily_metrics"]  # Collection for daily metrics
 
 
 def predict_context_switch(log):
-    """Predicts the context-switching rate based on the latest log."""
+    """Predicts the context-switching rate based on the latest log and updates DB."""
+    username = log.get("username", "Unknown")  # Get username from log
     features = {
         "time_spent": 60,  # Placeholder if not present in logs
         "keystrokes": log.get("keyboard_activity", 0),
@@ -30,22 +32,46 @@ def predict_context_switch(log):
     # Convert to DataFrame for prediction
     input_df = pd.DataFrame([features])
     predicted_rate = model.predict(input_df)[0]
-    #predicted_percentage = predicted_rate * 100  # Convert to percentage
     
-    print(f"Predicted Context Switch Rate: {predicted_rate:.2f}")
-    return predicted_rate
+    print(f"Predicted Context Switch Rate for {username}: {predicted_rate:.2f}")
+    
+    # Update the daily_metrics_collection with context-switch rate
+    daily_metrics_collection.update_one(
+        {"username": username, "date": time.strftime('%Y-%m-%d')},
+        {"$set": {"context_switch_rate": predicted_rate}},
+        upsert=True
+    )
 
+    return predicted_rate
 
 def watch_db():
     """Monitor the activity collection for new logs and process them in real-time."""
     print("Listening for new logs...")
+
     pipeline = [{"$match": {"operationType": "insert"}}]
+    log_count = 0  
+
     with collection.watch(pipeline) as stream:
         for change in stream:
             new_log = change["fullDocument"]
-            predict_context_switch(new_log)
+            predict_context_switch(new_log)  # Replace with respective function
 
-#Testing function
+            log_count += 1
+            if log_count >= 20:
+                print("Processed 20 logs. Stopping watch_db.")
+
+                # Increment shared counter in MongoDB
+                db["processing_status"].update_one(
+                    {"_id": "watch_db_counter"},
+                    {"$inc": {"completed_files": 1}},
+                    upsert=True
+                )
+
+                break  # Stop watching after 20 logs
+
+
+
+# Testing function
 def process_any_two_logs():
     """Fetch and process any 2 logs randomly for testing."""
     print("Processing any 2 logs...")
