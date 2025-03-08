@@ -212,6 +212,7 @@ def start_tracking():
 # Create a special route to initialize tracking only once
 tracking_started = False
 
+
 @app.route('/init_tracking', methods=['GET'])
 def init_tracking():
     global tracking_started

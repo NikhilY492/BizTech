@@ -3,15 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Users, Activity, BarChart2, User, Clock, Monitor, Coffee } from 'lucide-react';
 
-// Sample data for demonstration
-const mockEmployeesData = [
-  { id: 1, name: 'John Doe', role: 'Developer', productivityScore: 78, deepWorkHours: 23, distractedHours: 9, breakTime: 4.5 },
-  { id: 2, name: 'Jane Smith', role: 'Designer', productivityScore: 82, deepWorkHours: 25, distractedHours: 7, breakTime: 5 },
-  { id: 3, name: 'Mike Johnson', role: 'Product Manager', productivityScore: 75, deepWorkHours: 21, distractedHours: 11, breakTime: 3.8 },
-  { id: 4, name: 'Sarah Williams', role: 'Developer', productivityScore: 85, deepWorkHours: 27, distractedHours: 6, breakTime: 4.2 },
-  { id: 5, name: 'David Brown', role: 'QA Engineer', productivityScore: 73, deepWorkHours: 20, distractedHours: 12, breakTime: 5.3 },
-];
-
+// Initially start with empty arrays for data that will be fetched
 const weeklyTrendData = [
   { name: 'Week 1', avgProductivity: 72, totalDeepWork: 110 },
   { name: 'Week 2', avgProductivity: 75, totalDeepWork: 115 },
@@ -32,37 +24,59 @@ const COLORS = ['#2563eb', '#7c3aed', '#8b5cf6', '#a855f7', '#d1d5db'];
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [employees, setEmployees] = useState(mockEmployeesData);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Calculate metrics
-  const avgProductivityScore = Math.round(
+  const [employees, setEmployees] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Calculate metrics - with safe defaults for when data is loading
+  const avgProductivityScore = employees.length ? Math.round(
     employees.reduce((acc, emp) => acc + emp.productivityScore, 0) / employees.length
-  );
+  ) : 0;
   
   const totalDeepWorkHours = employees.reduce((acc, emp) => acc + emp.deepWorkHours, 0);
   
-  const avgBreakTime = (
+  const avgBreakTime = employees.length ? (
     employees.reduce((acc, emp) => acc + emp.breakTime, 0) / employees.length
-  ).toFixed(1);
+  ).toFixed(1) : 0;
 
   useEffect(() => {
-    // Here you would fetch real data from your API
-    // Example:
-    // const fetchEmployees = async () => {
-    //   setIsLoading(true);
-    //   try {
-    //     const response = await fetch('http://localhost:5000/admin/employees');
-    //     const data = await response.json();
-    //     setEmployees(data);
-    //   } catch (error) {
-    //     console.error('Error fetching employees:', error);
-    //   } finally {
-    //     setIsLoading(false);
-    //   }
-    // };
-    // fetchEmployees();
-  }, []);
+    // Function to fetch employee data from the database
+    const fetchEmployees = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // Replace with your actual API endpoint
+        const response = await fetch('/api/employees');
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setEmployees(data);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+        setError('Failed to load employee data. Please try again later.');
+        
+        // Fallback to mock data in case of error (for development)
+        setEmployees([
+          { id: 1, name: 'John Doe', role: 'Developer', productivityScore: 78, deepWorkHours: 23, distractedHours: 9, breakTime: 4.5 },
+          { id: 2, name: 'Jane Smith', role: 'Designer', productivityScore: 82, deepWorkHours: 25, distractedHours: 7, breakTime: 5 },
+          { id: 3, name: 'Mike Johnson', role: 'Product Manager', productivityScore: 75, deepWorkHours: 21, distractedHours: 11, breakTime: 3.8 },
+          { id: 4, name: 'Sarah Williams', role: 'Developer', productivityScore: 85, deepWorkHours: 27, distractedHours: 6, breakTime: 4.2 },
+          { id: 5, name: 'David Brown', role: 'QA Engineer', productivityScore: 73, deepWorkHours: 20, distractedHours: 12, breakTime: 5.3 },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    // Call the fetch function when the component mounts or when activeTab changes to 'employees'
+    if (activeTab === 'employees' || activeTab === 'overview') {
+      fetchEmployees();
+    }
+  }, [activeTab]);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -126,7 +140,7 @@ const AdminDashboard = () => {
         <header className="bg-white p-4 border-b flex items-center justify-between">
           <h1 className="text-xl font-semibold text-black">Admin Dashboard</h1>
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">March 8, 2025</span>
+            <span className="text-sm text-gray-500">{new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
             <button className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">
               Download Reports
             </button>
@@ -145,7 +159,7 @@ const AdminDashboard = () => {
                     <span className="text-sm px-2 py-1 rounded bg-blue-100 text-blue-800">Active</span>
                   </div>
                   <div className="mt-2 flex items-end justify-between text-black">
-                    <span className="text-3xl font-bold">{employees.length}</span>
+                    <span className="text-3xl font-bold">{isLoading ? '...' : employees.length}</span>
                     <Users className="text-indigo-500" size={24} />
                   </div>
                 </div>
@@ -153,12 +167,12 @@ const AdminDashboard = () => {
                 <div className="bg-white p-4 rounded-lg shadow">
                   <div className="flex items-center justify-between">
                     <h3 className="text-gray-500 text-sm">Avg. Productivity</h3>
-                    <span className={`text-sm px-2 py-1 rounded ${avgProductivityScore >= 75 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                      {avgProductivityScore >= 75 ? 'Good' : 'Average'}
+                    <span className={`text-sm px-2 py-1 rounded ${isLoading ? 'bg-gray-100 text-gray-800' : avgProductivityScore >= 75 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                      {isLoading ? 'Loading...' : avgProductivityScore >= 75 ? 'Good' : 'Average'}
                     </span>
                   </div>
                   <div className="mt-2 flex items-end justify-between text-black">
-                    <span className="text-3xl font-bold">{avgProductivityScore}%</span>
+                    <span className="text-3xl font-bold">{isLoading ? '...' : `${avgProductivityScore}%`}</span>
                     <Activity className="text-indigo-500" size={24} />
                   </div>
                 </div>
@@ -169,7 +183,7 @@ const AdminDashboard = () => {
                     <span className="text-sm px-2 py-1 rounded bg-purple-100 text-purple-800">This Week</span>
                   </div>
                   <div className="mt-2 flex items-end justify-between text-black">
-                    <span className="text-3xl font-bold">{totalDeepWorkHours}h</span>
+                    <span className="text-3xl font-bold">{isLoading ? '...' : `${totalDeepWorkHours}h`}</span>
                     <Clock className="text-indigo-500" size={24} />
                   </div>
                 </div>
@@ -180,7 +194,7 @@ const AdminDashboard = () => {
                     <span className="text-sm px-2 py-1 rounded bg-orange-100 text-orange-800">Per Day</span>
                   </div>
                   <div className="mt-2 flex items-end justify-between text-black">
-                    <span className="text-3xl font-bold">{avgBreakTime}h</span>
+                    <span className="text-3xl font-bold">{isLoading ? '...' : `${avgBreakTime}h`}</span>
                     <Coffee className="text-orange-500" size={24} />
                   </div>
                 </div>
@@ -265,57 +279,85 @@ const AdminDashboard = () => {
                 </div>
               </div>
               
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Productivity Score</th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deep Work Hours</th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distracted Hours</th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break Time</th>
-                      <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {employees.map((employee) => (
-                      <tr key={employee.id}>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center">
-                              {employee.name.split(' ').map(n => n[0]).join('')}
-                            </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{employee.name}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{employee.productivityScore}%</div>
-                          <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                            <div 
-                              className={`h-2 rounded-full ${
-                                employee.productivityScore >= 80 ? 'bg-green-500' : 
-                                employee.productivityScore >= 70 ? 'bg-blue-500' : 
-                                'bg-yellow-500'
-                              }`} 
-                              style={{ width: `${employee.productivityScore}%` }}
-                            ></div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.deepWorkHours}h</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.distractedHours}h</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.breakTime}h</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          <button className="text-indigo-600 hover:text-indigo-900">View Details</button>
-                        </td>
+              {isLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600 mb-2"></div>
+                  <p>Loading employee data...</p>
+                </div>
+              ) : error ? (
+                <div className="text-center py-8 text-red-600">
+                  <p>{error}</p>
+                  <button 
+                    className="mt-2 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                    onClick={() => {
+                      setActiveTab(''); // Force rerender
+                      setTimeout(() => setActiveTab('employees'), 10);
+                    }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead>
+                      <tr>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee</th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Productivity Score</th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deep Work Hours</th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Distracted Hours</th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break Time</th>
+                        <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {employees.length === 0 ? (
+                        <tr>
+                          <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                            No employee data available
+                          </td>
+                        </tr>
+                      ) : (
+                        employees.map((employee) => (
+                          <tr key={employee.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center">
+                                  {employee.name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">{employee.name}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.role}</td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900">{employee.productivityScore}%</div>
+                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                <div 
+                                  className={`h-2 rounded-full ${
+                                    employee.productivityScore >= 80 ? 'bg-green-500' : 
+                                    employee.productivityScore >= 70 ? 'bg-blue-500' : 
+                                    'bg-yellow-500'
+                                  }`} 
+                                  style={{ width: `${employee.productivityScore}%` }}
+                                ></div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.deepWorkHours}h</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.distractedHours}h</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{employee.breakTime}h</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              <button className="text-indigo-600 hover:text-indigo-900">View Details</button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
           
