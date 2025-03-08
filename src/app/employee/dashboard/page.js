@@ -50,6 +50,7 @@ const EmployeeDashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [appSwitches, setAppSwitches] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [activityData, setActivityData] = useState([]);
 
   // Calculate productivity score
   const totalHours = mockProductivityData.reduce((acc, day) => acc + day.deepWork + day.distracted + day.idle, 0);
@@ -178,6 +179,19 @@ const EmployeeDashboard = () => {
         return <OverviewTab />;
     }
   };
+
+  useEffect(() => {
+    const fetchActivity = async () => {
+        try {
+            const response = await fetch(`http://127.0.0.1:5000/get_activity/JohnDoe`); // replace JohnDoe
+            const data = await response.json();
+            setActivityData(data);
+        } catch (error) {
+            console.error('Error fetching activity data:', error);
+        }
+    };
+    fetchActivity();
+}, []);
  
  return (
  <div className="flex h-screen bg-gray-50">
@@ -288,15 +302,15 @@ const OverviewTab = ({ productivityScore, deepWorkHours, appSwitches, mockProduc
  </div>
  
  <div className="bg-white p-4 rounded-lg shadow">
- <div className="flex items-center justify-between">
- <h3 className="text-gray-500 text-sm">App Switches</h3>
- <span className="text-sm px-2 py-1 rounded bg-purple-100 text-purple-800">Today</span>
- </div>
- <div className="mt-2 flex items-end justify-between text-black">
- <span className="text-3xl font-bold">{isLoading ? '...' : appSwitches}</span>
- <Monitor className="text-purple-500" size={24} />
- </div>
- </div>
+    <div className="flex items-center justify-between">
+        <h3 className="text-gray-500 text-sm">App Switches</h3>
+        <span className="text-sm px-2 py-1 rounded bg-purple-100 text-purple-800">Today</span>
+    </div>
+    <div className="mt-2 flex items-end justify-between text-black">
+        <span className="text-3xl font-bold">{activityData.reduce((acc, curr) => acc + curr.app_switches, 0)}</span>
+        <Monitor className="text-purple-500" size={24} />
+    </div>
+</div>
  
  <div className="bg-white p-4 rounded-lg shadow">
  <div className="flex items-center justify-between">

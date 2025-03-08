@@ -16,6 +16,8 @@ mongo = PyMongo(app)
 # Global counters for keyboard & mouse tracking
 keyboard_presses = 0
 mouse_clicks = 0
+app_switches = 0
+previous_window = None
 
 # Keyboard event listener
 def on_key_press(key):
@@ -86,6 +88,13 @@ def classify_window(title):
         return "unproductive"
     return "unknown"
 
+@app.route('/get_activity/<username>', methods=['GET'])
+def get_activity(username):
+    activities = list(mongo.db.activity.find({"username": username}))
+    for activity in activities:
+        activity["_id"] = str(activity["_id"])
+    return jsonify(activities), 200
+
 # Track User Activity
 @app.route('/update_activity', methods=['POST'])
 def update_activity():
@@ -101,6 +110,11 @@ def update_activity():
     active_window = get_active_window()
     productivity_status = classify_window(active_window)
 
+    # Count app switches
+    if previous_window and previous_window != active_window:
+        app_switches += 1
+    previous_window = active_window
+
     # Get system time in HH:MM:SS format
     system_time = time.strftime('%H:%M:%S')
 
@@ -111,12 +125,14 @@ def update_activity():
         "mouse_clicks": mouse_clicks,
         "active_window": active_window,
         "productivity_status": productivity_status,
-        "timestamp": system_time
+        "timestamp": system_time,
+        "app_switches": app_switches
     })
 
     # Reset counters after storing
     keyboard_presses = 0
     mouse_clicks = 0
+    app_switches = 0
 
     return jsonify({"message": "Activity updated successfully"}), 200
 
