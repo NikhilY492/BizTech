@@ -3,9 +3,51 @@ from flask_cors import CORS
 from flask_pymongo import PyMongo
 from werkzeug.security import generate_password_hash, check_password_hash
 import time
-import pygetwindow as gw
-from pynput import keyboard, mouse
 import threading
+import platform
+from pynput import keyboard, mouse
+
+# Import OS-specific window tracking libraries
+try:
+    if platform.system() == 'Windows':
+        import pygetwindow as gw
+        def get_active_window():
+            try:
+                window = gw.getActiveWindow()
+                return window.title.lower() if window else ""
+            except:
+                return ""
+    elif platform.system() == 'Linux':
+        import subprocess
+        def get_active_window():
+            try:
+                # Use xdotool on Linux to get active window title
+                cmd = "xdotool getwindowfocus getwindowname"
+                return subprocess.check_output(cmd, shell=True).decode().strip().lower()
+            except:
+                return ""
+    elif platform.system() == 'Darwin':  # macOS
+        import subprocess
+        def get_active_window():
+            try:
+                script = '''
+                tell application "System Events"
+                    set frontApp to name of first application process whose frontmost is true
+                    return frontApp
+                end tell
+                '''
+                result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
+                return result.stdout.strip().lower()
+            except:
+                return ""
+    else:
+        # Fallback for unsupported platforms
+        def get_active_window():
+            return "unsupported_platform"
+except ImportError:
+    # Fallback if required libraries aren't available
+    def get_active_window():
+        return "missing_dependencies"
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*", "methods": ["GET", "POST", "OPTIONS"]}})
@@ -17,8 +59,6 @@ mongo = PyMongo(app)
 # Global counters for keyboard & mouse tracking
 keyboard_presses = 0
 mouse_clicks = 0
-app_switches = 0
-previous_window = None
 tracking_initialized = False
 
 # Keyboard event listener
@@ -68,6 +108,20 @@ def signup():
     })
     
     return jsonify({"message": "User registered successfully"}), 201
+# Get all user activity logs
+@app.route('/api/activity', methods=['GET'])
+def get_activity():
+    activities = list(mongo.db.activity.find({}, {"_id": 0}))  # Exclude MongoDB ID
+    return jsonify(activities), 200
+
+
+# Get app switch count
+@app.route('/api/switches', methods=['GET'])
+def get_switches():
+    tracking_data = mongo.db.activity.find_one({"username": "aa"}, {"_id": 0, "app_switches": 1})
+    app_switches = tracking_data["app_switches"] if tracking_data else 0
+    return jsonify({"count": app_switches}), 200
+
 
 # User Login
 @app.route('/login', methods=['POST'])
@@ -79,14 +133,6 @@ def login():
         return jsonify({"message": "Login successful", "jobrole": user["jobrole"]}), 200
     
     return jsonify({"error": "Invalid credentials"}), 401
-
-# Get Active Window
-def get_active_window():
-    try:
-        window = gw.getActiveWindow()
-        return window.title.lower() if window else ""
-    except:
-        return ""
 
 # Classify Window Productivity
 def classify_window(title):
@@ -129,7 +175,8 @@ def update_activity():
         "active_window": active_window,
         "productivity_status": productivity_status,
         "timestamp": system_time,
-        "app_switches": app_switches
+        "app_switches": app_switches,
+        "platform": platform.system()  # Add platform info for debugging
     })
 
     # Reset only keyboard and mouse counters
@@ -138,9 +185,10 @@ def update_activity():
 
     return jsonify({
         "message": "Activity updated successfully",
-        "app_switches": app_switches
+        "app_switches": app_switches,
+        "platform": platform.system(),
+        "active_window": active_window
     }), 200
-
 
 # Initialize global tracking if not exists
 def initialize_tracking():
@@ -161,8 +209,6 @@ def initialize_tracking():
 
 # Background Task to Track App Switches
 def track_app_switches():
-    global previous_window
-    
     # Wait for Flask to fully initialize before starting tracking
     time.sleep(2)
     
@@ -200,18 +246,14 @@ def track_app_switches():
             print(f"Error in tracking thread: {e}")
             time.sleep(5)  # Wait longer if there's an error
 
-
 # Start the tracking thread manually
 def start_tracking():
-    threading.Thread(target=track_app_switches, daemon=True).start()
-    print("App switch tracking started")
-
-# In Flask 2.0+, we need to use a different approach instead of before_first_request
-# We'll use the app context directly
+    tracking_thread = threading.Thread(target=track_app_switches, daemon=True)
+    tracking_thread.start()
+    print(f"App switch tracking started on {platform.system()}")
 
 # Create a special route to initialize tracking only once
 tracking_started = False
-
 
 @app.route('/init_tracking', methods=['GET'])
 def init_tracking():
@@ -219,7 +261,26 @@ def init_tracking():
     if not tracking_started:
         start_tracking()
         tracking_started = True
-    return jsonify({"message": "Tracking initialized"}), 200
+    return jsonify({
+        "message": "Tracking initialized", 
+        "platform": platform.system(),
+        "window_api": "pygetwindow" if platform.system() == "Windows" else 
+                     "xdotool" if platform.system() == "Linux" else 
+                     "applescript" if platform.system() == "Darwin" else 
+                     "unsupported"
+    }), 200
+
+@app.route('/system_info', methods=['GET'])
+def system_info():
+    """Endpoint to check system compatibility and configuration"""
+    window_title = get_active_window()
+    return jsonify({
+        "platform": platform.system(),
+        "python_version": platform.python_version(),
+        "active_window_detected": bool(window_title),
+        "active_window": window_title,
+        "tracking_initialized": tracking_initialized
+    }), 200
 
 if __name__ == '__main__':
     # Start tracking thread before running the app

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 import { Clock, Calendar, Activity, Monitor, Coffee, Users, BarChart2, AlertCircle, Zap } from 'lucide-react';
 
+
 // Sample data for demonstration - will be replaced with API data
 const mockProductivityData = [
   { name: 'Mon', deepWork: 4.5, distracted: 2.5, idle: 1 },
@@ -139,40 +140,38 @@ const EmployeeDashboard = () => {
   }, []);
 
   // Fetch data from Flask backend
-  useEffect(() => {
+ // Fetch data from Flask backend
+useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Fetch recent activity
-        const activityResponse = await fetch('/api/activity');
-        if (activityResponse.ok) {
-          const activityData = await activityResponse.json();
-          setRecentActivity(activityData);
-        }
-
-        // Fetch app switches
-        const switchesResponse = await fetch('/api/switches');
-        if (switchesResponse.ok) {
-          const switchesData = await switchesResponse.json();
-          setAppSwitches(switchesData.count);
-        }
+        // Fetch recent activity with full URL path
+        const activityResponse = await fetch('http://127.0.0.1:5000/api/activity');
+        if (!activityResponse.ok) throw new Error("Activity API failed");
+        const activityData = await activityResponse.json();
+        setRecentActivity(activityData);
+        
+        // Fetch app switches with full URL path
+        const switchesResponse = await fetch('http://127.0.0.1:5000/api/switches');
+        if (!switchesResponse.ok) throw new Error("Switches API failed");
+        const switchesData = await switchesResponse.json();
+        setAppSwitches(switchesData.count);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
     };
-
+    
     // Initial fetch
     fetchData();
-
+    
     // Set up a polling interval for real-time updates
     const intervalId = setInterval(fetchData, 60000); // Poll every minute
-
+    
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
   }, []);
-
   // Render different content based on active tab
   const renderTabContent = () => {
     switch (activeTab) {
