@@ -1,22 +1,22 @@
 {
-    "Software Developer": {
-      "productive": ["VS Code", "GitHub", "Stack Overflow", "AWS", "Jira"],
-      "non_productive": ["YouTube (entertainment)", "Facebook", "Steam"]
-    },
-    "Digital Marketer": {
-      "productive": ["Google Analytics", "SEMrush", "LinkedIn"],
-      "non_productive": ["Netflix", "TikTok", "Gaming Websites"]
-    },
-    "Graphic Designer": {
-      "productive": ["Photoshop", "Figma", "Behance"],
-      "non_productive": ["Reddit", "Steam", "Hulu"]
-    },
-    "Data Scientist": {
-      "productive": ["Jupyter Notebook", "Kaggle", "Tableau"],
-      "non_productive": ["YouTube (random)", "Amazon", "Discord"]
-    },
-    "Content Creator": {
-      "productive": ["YouTube (for content)", "OBS Studio", "Twitch"],
-      "non_productive": ["Netflix", "YouTube (random watching)", "Steam"]
-    }
+  "Software Developer": {
+    "productive": ["VS Code", "GitHub", "Stack Overflow", "AWS", "Jira"],
+    "non_productive": ["YouTube (entertainment)", "Facebook", "Steam"]
+  },
+  "Digital Marketer": {
+    "productive": ["Google Analytics", "SEMrush", "LinkedIn"],
+    "non_productive": ["Netflix", "TikTok", "Gaming Websites"]
+  },
+  "Graphic Designer": {
+    "productive": ["Photoshop", "Figma", "Behance"],
+    "non_productive": ["Reddit", "Steam", "Hulu"]
+  },
+  "Data Scientist": {
+    "productive": ["Jupyter Notebook", "Kaggle", "Tableau"],
+    "non_productive": ["YouTube (random)", "Amazon", "Discord"]
+  },
+  "Content Creator": {
+    "productive": ["YouTube (for content)", "OBS Studio", "Twitch"],
+    "non_productive": ["Netflix", "YouTube (random watching)", "Steam"]
+  }
 }   

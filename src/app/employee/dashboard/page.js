@@ -359,7 +359,7 @@ const OverviewTab = ({ productivityScore, deepWorkHours, appSwitches, mockProduc
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
  {/* Weekly Productivity Chart */}
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="font-medium mb-4">Weekly Work Pattern</h3>
+ <h3 className="font-medium mb-4 text-black">Weekly Work Pattern</h3>
  <ResponsiveContainer width="100%" height={300}>
  <BarChart
  data={mockProductivityData}
@@ -380,7 +380,7 @@ const OverviewTab = ({ productivityScore, deepWorkHours, appSwitches, mockProduc
  
  {/* App Usage Chart */}
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="font-medium mb-4">App Usage Distribution</h3>
+ <h3 className="font-medium mb-4 text-black">App Usage Distribution</h3>
  <ResponsiveContainer width="100%" height={300}>
  <PieChart>
  <Pie
@@ -406,7 +406,7 @@ const OverviewTab = ({ productivityScore, deepWorkHours, appSwitches, mockProduc
  {/* Recent Activity */}
  <div className="bg-white p-4 rounded-lg shadow">
  <div className="flex justify-between items-center mb-4">
- <h3 className="font-medium">Recent Activity</h3>
+ <h3 className="font-medium text-black">Recent Activity</h3>
  {isLoading && <span className="text-sm text-blue-500">Refreshing data...</span>}
  </div>
  <div className="overflow-x-auto">
@@ -486,21 +486,21 @@ const ProductivityTab = ({ productivityData, distractionData }) => {
  return (
  <>
  <div className="mb-6">
- <h2 className="text-xl font-medium mb-4">Productivity Analysis</h2>
+ <h2 className="text-xl font-medium mb-4 text-black">Productivity Analysis</h2>
  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
  <div className="bg-white p-4 rounded-lg shadow">
  <h3 className="text-gray-500 text-sm mb-1">Focus Time</h3>
- <div className="text-3xl font-bold">4.5h</div>
+ <div className="text-3xl font-bold text-black">4.5h</div>
  <div className="text-sm text-gray-500 mt-1">Average per day</div>
  </div>
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="text-gray-500 text-sm mb-1">Distracted Time</h3>
- <div className="text-3xl font-bold">2.1h</div>
+ <h3 className="text-gray-500 text-sm mb-1 text-black">Distracted Time</h3>
+ <div className="text-3xl font-bold text-black">2.1h</div>
  <div className="text-sm text-gray-500 mt-1">Average per day</div>
  </div>
  <div className="bg-white p-4 rounded-lg shadow">
  <h3 className="text-gray-500 text-sm mb-1">Focus Sessions</h3>
- <div className="text-3xl font-bold">8</div>
+ <div className="text-3xl font-bold text-black">8</div>
  <div className="text-sm text-gray-500 mt-1">Average per day</div>
  </div>
  </div>
@@ -510,7 +510,7 @@ const ProductivityTab = ({ productivityData, distractionData }) => {
  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
  {/* Deep Work vs Distraction */}
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="font-medium mb-4">Focus vs Distraction Ratio</h3>
+ <h3 className="font-medium mb-4 text-black">Focus vs Distraction Ratio</h3>
  <ResponsiveContainer width="100%" height={300}>
  <BarChart
  data={productivityData}
@@ -530,7 +530,7 @@ const ProductivityTab = ({ productivityData, distractionData }) => {
  
  {/* Distraction Sources */}
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="font-medium mb-4">Distraction Sources</h3>
+ <h3 className="font-medium mb-4 text-black">Distraction Sources</h3>
  <ResponsiveContainer width="100%" height={300}>
  <LineChart
  data={distractionData}
@@ -551,26 +551,26 @@ const ProductivityTab = ({ productivityData, distractionData }) => {
  
  {/* Productivity Tips */}
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="font-medium mb-4">Productivity Insights</h3>
+ <h3 className="font-medium mb-4 text-black">Productivity Insights</h3>
  <div className="space-y-4">
  <div className="flex items-start space-x-3">
  <AlertCircle className="text-amber-500 mt-1 flex-shrink-0" size={20} />
  <div>
- <p className="font-medium">Excessive App Switching</p>
+ <p className="font-medium text-black">Excessive App Switching</p>
  <p className="text-sm text-gray-600">You switch between applications 42 times today, which is 15% higher than your average.</p>
  </div>
  </div>
  <div className="flex items-start space-x-3">
  <Zap className="text-green-500 mt-1 flex-shrink-0" size={20} />
  <div>
- <p className="font-medium">Peak Productivity Time</p>
+ <p className="font-medium text-black">Peak Productivity Time</p>
  <p className="text-sm text-gray-600">Your most productive hours are between 9AM-11AM. Consider scheduling deep work during this time.</p>
  </div>
  </div>
  <div className="flex items-start space-x-3">
  <Activity className="text-blue-500 mt-1 flex-shrink-0" size={20} />
  <div>
- <p className="font-medium">Break Patterns</p>
+ <p className="font-medium text-black">Break Patterns</p>
  <p className="text-sm text-gray-600">You tend to work for 90 minutes straight without breaks. Consider taking short breaks every 50-60 minutes.</p>
  </div>
  </div>
@@ -595,24 +595,24 @@ const ApplicationsTab = ({ appUsageData, appSwitches }) => {
  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
  <div className="bg-white p-4 rounded-lg shadow">
  <h3 className="text-gray-500 text-sm mb-1">App Switches</h3>
- <div className="text-3xl font-bold">{appSwitches || 42}</div>
+ <div className="text-3xl font-bold text-black">{appSwitches || 42}</div>
  <div className="text-sm text-gray-500 mt-1">Today</div>
  </div>
  <div className="bg-white p-4 rounded-lg shadow">
  <h3 className="text-gray-500 text-sm mb-1">Most Used App</h3>
- <div className="text-xl font-bold">VS Code</div>
+ <div className="text-xl font-bold text-black">VS Code</div>
  <div className="text-sm text-gray-500 mt-1">3h 45m (42% of work time)</div>
  </div>
  <div className="bg-white p-4 rounded-lg shadow">
  <h3 className="text-gray-500 text-sm mb-1">Multitasking Score</h3>
- <div className="text-3xl font-bold">68%</div>
+ <div className="text-3xl font-bold text-black">68%</div>
  <div className="text-sm text-gray-500 mt-1">Moderate</div>
  </div>
  </div>
  
  {/* App Usage Distribution */}
  <div className="bg-white p-4 rounded-lg shadow mb-6">
- <h3 className="font-medium mb-4">Application Usage Distribution</h3>
+ <h3 className="font-medium mb-4 text-black">Application Usage Distribution</h3>
  <ResponsiveContainer width="100%" height={300}>
  <PieChart>
  <Pie
@@ -636,7 +636,7 @@ const ApplicationsTab = ({ appUsageData, appSwitches }) => {
  
  {/* Top Applications Table */}
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="font-medium mb-4">Top Applications</h3>
+ <h3 className="font-medium mb-4 text-black">Top Applications</h3>
  <div className="overflow-x-auto">
  <table className="min-w-full divide-y divide-gray-200">
  <thead>
@@ -650,7 +650,7 @@ const ApplicationsTab = ({ appUsageData, appSwitches }) => {
  <tbody className="bg-white divide-y divide-gray-200">
  {topApps.map((app, index) => (
  <tr key={index}>
- <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{app.name}</td>
+ <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">{app.name}</td>
  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{app.time}</td>
  <td className="px-6 py-4 whitespace-nowrap text-sm">
  <span className={`inline-flex items-center ${
@@ -722,7 +722,7 @@ const BreaksTab = ({ breakTimeData }) => {
  
  {/* Break Time Trend Chart */}
  <div className="bg-white p-4 rounded-lg shadow mb-6">
- <h3 className="font-medium mb-4">Break Time Distribution (Today)</h3>
+ <h3 className="font-medium mb-4 text-black">Break Time Distribution (Today)</h3>
  <ResponsiveContainer width="100%" height={300}>
  <LineChart
  data={breakTimeData}
@@ -760,33 +760,33 @@ const BreaksTab = ({ breakTimeData }) => {
  
  {/* Break Recommendations */}
  <div className="bg-white p-4 rounded-lg shadow">
- <h3 className="font-medium mb-4">Break Recommendations</h3>
+ <h3 className="font-medium mb-4 text-black">Break Recommendations</h3>
  <div className="space-y-4">
  <div className="flex items-start space-x-3">
  <AlertCircle className="text-amber-500 mt-1 flex-shrink-0" size={20} />
  <div>
- <p className="font-medium">Extended Work Period Detected</p>
+ <p className="font-medium text-black">Extended Work Period Detected</p>
  <p className="text-sm text-gray-600">You worked for 120 minutes straight from 9:00 AM to 11:00 AM without taking a break. Consider shorter work intervals.</p>
  </div>
  </div>
  <div className="flex items-start space-x-3">
  <Coffee className="text-orange-500 mt-1 flex-shrink-0" size={20} />
  <div>
- <p className="font-medium">Optimal Break Schedule</p>
+ <p className="font-medium text-black">Optimal Break Schedule</p>
  <p className="text-sm text-gray-600">Research suggests taking a 5-minute break every 25 minutes, or a 15-minute break every 90 minutes of focused work.</p>
  </div>
  </div>
  <div className="flex items-start space-x-3">
  <Users className="text-blue-500 mt-1 flex-shrink-0" size={20} />
  <div>
- <p className="font-medium">Break Activity Suggestion</p>
+ <p className="font-medium text-black">Break Activity Suggestion</p>
  <p className="text-sm text-gray-600">Consider spending breaks away from screens. Short walks, stretching, or brief meditation can improve focus when you return to work.</p>
  </div>
  </div>
  <div className="flex items-start space-x-3">
  <Calendar className="text-purple-500 mt-1 flex-shrink-0" size={20} />
  <div>
- <p className="font-medium">Schedule Adjustment</p>
+ <p className="font-medium text-black">Schedule Adjustment</p>
  <p className="text-sm text-gray-600">Your break pattern suggests you may benefit from scheduling longer breaks around 12 PM and 3 PM when your energy naturally dips.</p>
  </div>
  </div>
