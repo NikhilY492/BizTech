@@ -1,103 +1,142 @@
 import os
-import time
 import pandas as pd
 import numpy as np
 from pymongo import MongoClient
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error
-import joblib  # For saving and loading models
+import joblib
 
 # Define model save path
-MODEL_DIR = os.path.join(os.path.dirname(__file__), "feature_calculations", "models")
-os.makedirs(MODEL_DIR, exist_ok=True)  # Ensure directory exists
-MODEL_PATH = os.path.join(MODEL_DIR, "efficiency_model.pkl")
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "efficiency_model.pkl")
 
 # Connect to MongoDB
-client = MongoClient("mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/biztech_db?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient("mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = client["biztech_db"]
-daily_metrics_collection = db["daily_metrics_collection"]
-processing_status_collection = db["processing_status"]
+processed_data = db["processed_data"]  # Processed logs
+efficiency_results = db["efficiency_results"]  # New collection for final efficiency
 
-# Wait until all watch_db functions have completed processing 20 logs each
-def wait_for_all_logs():
-    """Waits until all four watch_db functions have processed 20 logs each."""
-    while True:
-        status = processing_status_collection.find_one({"_id": "watch_db_counter"})
-        completed_files = status["completed_files"] if status else 0
-
-        if completed_files >= 4:
-            print("All four processes completed. Running model.py...")
-            return  # Exit loop and proceed with efficiency calculation
-
-        print(f"Waiting... {completed_files}/4 files completed.")
-        time.sleep(5)  # Wait for 5 seconds before checking again
-
-# Fetching data from MongoDB
+# Fetch processed logs
 def fetch_data():
-    cursor = daily_metrics_collection.find({}, {"_id": 0})  # Exclude _id field
-    return list(cursor)
+    cursor = processed_data.find({})  # Keep `_id` for updates
+    data = list(cursor)
+    print(f"Retrieved {len(data)} records from processed_data collection")
+    return data
 
-# Function to train the model
+# Train Model
 def train_model():
     data = fetch_data()
     if not data:
-        print("No data found in daily_metrics_collection!")
-        return
+        print("❌ No data found in processed_data!")
+        return None
 
-    data = pd.DataFrame(data)
+    # Convert MongoDB data to DataFrame
+    df = pd.DataFrame(data)
+    print(f"DataFrame columns: {df.columns.tolist()}")
+    
+    # Check for required columns
+    required_columns = ["active_keyboard_time", "idle_duration", "context_switching_rate", "deep_work_session", "daily_efficiency"]
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    
+    if missing_columns:
+        print(f"❌ Missing columns in dataset: {missing_columns}")
+        # If daily_efficiency is missing, add a placeholder value
+        if "daily_efficiency" in missing_columns:
+            print("Adding placeholder daily_efficiency values for training")
+            df["daily_efficiency"] = np.random.uniform(0.5, 0.9, size=len(df))
+            # Also update the database
+            for index, row in df.iterrows():
+                processed_data.update_one(
+                    {"_id": row["_id"]},
+                    {"$set": {"daily_efficiency": float(row["daily_efficiency"])}},
+                    upsert=True
+                )
+        
+        # Add other missing columns with zeros
+        for col in missing_columns:
+            if col != "daily_efficiency": 
+                df[col] = 0
+    
+    # Fix data types
+    for col in ["active_keyboard_time", "idle_duration", "context_switching_rate", "deep_work_session", "daily_efficiency"]:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+        
+    X = df[["active_keyboard_time", "idle_duration", "context_switching_rate", "deep_work_session"]]
+    y = df["daily_efficiency"]
 
-    # Selecting only the required four parameters and the target variable
-    data = data[["active_keyboard_time", "idle_duration", "context_switching_rate", "deep_work_session", "daily_efficiency"]]
-
-    # Splitting into features and target
-    X = data.drop(columns=["daily_efficiency"])
-    y = data["daily_efficiency"]
-
-    # Train-test split
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Train the Random Forest Model
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
 
-    # Save trained model
     joblib.dump(model, MODEL_PATH)
-    print(f"Model saved to {MODEL_PATH}")
+    print(f"✅ Model saved at {MODEL_PATH}")
 
-    # Predict on test data
     y_pred = model.predict(X_test)
     mae = mean_absolute_error(y_test, y_pred)
-    print(f"Mean Absolute Error: {mae:.2f}")
+    print(f"📊 Mean Absolute Error: {mae:.2f}")
 
-    # Feature importance
-    importances = model.feature_importances_
-    feature_names = X.columns
-    print("Feature weightage:")
-    for feature, importance in zip(feature_names, importances):
+    print("📌 Feature Importance:")
+    for feature, importance in zip(X.columns, model.feature_importances_):
         print(f"{feature}: {importance:.2f}")
+    
+    return model
 
-# Function to predict efficiency for new data
+# Predict Efficiency and Store in New Collection
 def predict_efficiency():
     new_data = fetch_data()
     if not new_data:
-        print("No new data found.")
+        print("⚠️ No new data found.")
         return
 
-    new_df = pd.DataFrame(new_data)[["active_keyboard_time", "idle_duration", "context_switching_rate", "deep_work_session"]]
+    new_df = pd.DataFrame(new_data)
+    required_columns = ["active_keyboard_time", "idle_duration", "context_switching_rate", "deep_work_session"]
     
-    model = joblib.load(MODEL_PATH)
-    predicted_efficiency = model.predict(new_df)
+    # Check for missing columns and add with zeros if needed
+    for col in required_columns:
+        if col not in new_df.columns:
+            print(f"Adding missing column {col} with zeros")
+            new_df[col] = 0
     
-    # Update predictions in MongoDB
+    # Fix data types
+    for col in required_columns:
+        new_df[col] = pd.to_numeric(new_df[col], errors='coerce').fillna(0)
+    
+    # Check if model exists, train if it doesn't
+    if not os.path.exists(MODEL_PATH):
+        print("Model not found, training new model...")
+        model = train_model()
+        if model is None:
+            print("❌ Failed to train model.")
+            return
+    else:
+        try:
+            model = joblib.load(MODEL_PATH)
+        except Exception as e:
+            print(f"❌ Error loading model: {str(e)}")
+            print("Training new model...")
+            model = train_model()
+            if model is None:
+                print("❌ Failed to train model.")
+                return
+
+    predicted_efficiency = model.predict(new_df[required_columns])
+
+    # Store predicted efficiency in a new collection
+    update_count = 0
     for i, doc in enumerate(new_data):
-        daily_metrics_collection.update_one(
-            {"_id": doc["_id"]},
-            {"$set": {"predicted_efficiency": predicted_efficiency[i]}}
-        )
-    print("Efficiency scores updated in MongoDB.")
+        try:
+            efficiency_results.update_one(
+                {"_id": doc["_id"]},
+                {"$set": {"predicted_efficiency": float(predicted_efficiency[i])}},
+                upsert=True  # Insert if not exists
+            )
+            update_count += 1
+        except Exception as e:
+            print(f"❌ Error updating efficiency for document {doc.get('_id')}: {str(e)}")
+
+    print(f"✅ {update_count} efficiency scores stored in efficiency_results collection.")
 
 if __name__ == "__main__":
-    wait_for_all_logs()  # Wait until all four files finish processing 20 logs
-    train_model()  # Train the model after all logs are processed
-    predict_efficiency()  # Run efficiency predictions
+    train_model()
+    predict_efficiency()

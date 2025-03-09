@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from datetime import datetime
 
 # Connect to MongoDB
-client = MongoClient("mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/biztech_db?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient("mongodb+srv://Nikhil:chandu@cluster0.gape4.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 db = client["biztech_db"]
 activity_collection = db["activity"]
 daily_metrics_collection = db["daily_metrics"]  # New collection for daily idle time tracking
@@ -33,32 +33,3 @@ def update_idle_time(new_log):
         )
 
     print(f"Updated Idle Time: {total_idle_time} seconds")
-
-def watch_db():
-    """Monitor the activity collection for new logs and process them in real-time."""
-    print("Listening for new logs...")
-
-    pipeline = [{"$match": {"operationType": "insert"}}]
-    log_count = 0  
-
-    with activity_collection.watch(pipeline) as stream:
-        for change in stream:
-            new_log = change["fullDocument"]
-            update_idle_time(new_log)  # Replace with respective function
-
-            log_count += 1
-            if log_count >= 20:
-                print("Processed 20 logs. Stopping watch_db.")
-
-                # Increment shared counter in MongoDB
-                db["processing_status"].update_one(
-                    {"_id": "watch_db_counter"},
-                    {"$inc": {"completed_files": 1}},
-                    upsert=True
-                )
-
-                break  # Stop watching after 20 logs
-
-
-# Start monitoring for new logs
-watch_db()
